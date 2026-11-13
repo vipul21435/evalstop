@@ -83,12 +83,35 @@ class ConfidenceSequence:
         lo, hi = self.bounds
         if not lo < threshold < hi:
             raise ValueError(f"threshold must lie strictly between {lo:g} and {hi:g}")
-        hits = np.flatnonzero((self.lower >= threshold) | (self.upper <= threshold))
+        # Limits on a rescaled grid can be off by a rounding error.
+        slack = _SLACK * (hi - lo)
+        above = self.lower >= threshold - slack
+        hits = np.flatnonzero(above | (self.upper <= threshold + slack))
         if hits.size == 0:
             return None
         i = int(hits[0])
-        decision = "above" if self.lower[i] >= threshold else "below"
+        decision = "above" if above[i] else "below"
         return Stop(i + 1, decision, float(self.lower[i]), float(self.upper[i]))
+
+    def inside_stop(self, low: float, high: float) -> Stop | None:
+        """Return the first look at which the whole interval lies in ``[low, high]``.
+
+        Used as a futility rule: once the interval for a difference lies inside
+        ``(-delta, delta)``, no difference of at least ``delta`` is left to find.
+        """
+        if not low < high:
+            raise ValueError("low must be below high")
+        slack = _SLACK * (self.bounds[1] - self.bounds[0])
+        ok = (
+            (self.lower >= low - slack)
+            & (self.upper <= high + slack)
+            & (self.lower <= self.upper)
+        )
+        hits = np.flatnonzero(ok)
+        if hits.size == 0:
+            return None
+        i = int(hits[0])
+        return Stop(i + 1, "inside", float(self.lower[i]), float(self.upper[i]))
 
     def width_stop(self, width: float) -> Stop | None:
         """Return the first look at which the interval is no wider than ``width``."""
