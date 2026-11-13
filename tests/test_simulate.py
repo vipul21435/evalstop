@@ -37,6 +37,8 @@ def test_simulate_reports_error_rates_power_and_items():
     assert rows[(0.15, "fixed")].right >= rows[(0.15, "betting")].right
     assert all(row.futile == 0.0 for row in report.rows if row.rule != "sprt")
     assert rows[(0.0, "sprt")].futile > 0.5
+    assert "| 0 | sprt | yes, at alpha/(1-beta) |" in report.to_markdown()
+    assert "| 0 | discordant | yes |" in report.to_markdown()
     assert rows[(0.0, "obf")].wrong <= limit + 0.005
     assert rows[(0.15, "obf")].mean_items < 300.0
 
@@ -109,7 +111,10 @@ def test_replay_reports_items_and_agreement():
     text = report.to_markdown()
     assert "exact McNemar test on all pairs: p = " in text and "`a` better" in text
     assert "| discordant | yes |" in text
+    assert "| sprt | yes, at alpha/(1-beta) |" in text
     assert report.to_dict()["rows"][0]["agrees_with_full_data"] is not None
+    labels = {row["rule"]: row["valid_at_every_look"] for row in report.to_dict()["rows"]}
+    assert labels["sprt"] == "yes, at alpha/(1-beta)" and labels["betting"] == "yes"
 
 
 def test_replay_null_measures_false_positives():

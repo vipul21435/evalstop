@@ -30,7 +30,8 @@ _VALID = {
     "discordant": "yes",
     "obf": "planned looks",
     "pocock": "planned looks",
-    "sprt": "yes",
+    # Wald's thresholds bound the false-positive rate by alpha / (1 - beta), not alpha.
+    "sprt": "yes, at alpha/(1-beta)",
     "naive": "no",
     "fixed": "one look",
 }

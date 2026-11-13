@@ -425,7 +425,7 @@ evalstop simulate --effects 0 0.05 0.1 --items 500 --runs 5000 --seed 0
 | 0 | discordant | yes | 0.026 | - | 0.000 | 489.9 |
 | 0 | obf | planned looks | 0.049 | - | 0.000 | 496.7 |
 | 0 | pocock | planned looks | 0.051 | - | 0.000 | 488.3 |
-| 0 | sprt | yes | 0.044 | - | 0.930 | 179.1 |
+| 0 | sprt | yes, at alpha/(1-beta) | 0.044 | - | 0.930 | 179.1 |
 | 0 | naive | no | 0.260 | - | 0.000 | 408.4 |
 | 0 | fixed | one look | 0.039 | - | 0.000 | 500.0 |
 | 0.05 | betting | yes | 0.002 | 0.200 | 0.000 | 445.0 |
@@ -433,7 +433,7 @@ evalstop simulate --effects 0 0.05 0.1 --items 500 --runs 5000 --seed 0
 | 0.05 | discordant | yes | 0.003 | 0.238 | 0.000 | 439.1 |
 | 0.05 | obf | planned looks | 0.000 | 0.531 | 0.000 | 449.6 |
 | 0.05 | pocock | planned looks | 0.001 | 0.449 | 0.000 | 417.0 |
-| 0.05 | sprt | yes | 0.001 | 0.335 | 0.569 | 222.3 |
+| 0.05 | sprt | yes, at alpha/(1-beta) | 0.001 | 0.335 | 0.569 | 222.3 |
 | 0.05 | naive | no | 0.016 | 0.690 | 0.000 | 282.0 |
 | 0.05 | fixed | one look | 0.000 | 0.509 | 0.000 | 500.0 |
 | 0.1 | betting | yes | 0.000 | 0.780 | 0.000 | 278.2 |
@@ -441,7 +441,7 @@ evalstop simulate --effects 0 0.05 0.1 --items 500 --runs 5000 --seed 0
 | 0.1 | discordant | yes | 0.001 | 0.879 | 0.000 | 253.1 |
 | 0.1 | obf | planned looks | 0.000 | 0.984 | 0.000 | 316.7 |
 | 0.1 | pocock | planned looks | 0.000 | 0.966 | 0.000 | 243.6 |
-| 0.1 | sprt | yes | 0.000 | 0.859 | 0.123 | 179.4 |
+| 0.1 | sprt | yes, at alpha/(1-beta) | 0.000 | 0.859 | 0.123 | 179.4 |
 | 0.1 | naive | no | 0.002 | 0.989 | 0.000 | 123.9 |
 | 0.1 | fixed | one look | 0.000 | 0.982 | 0.000 | 500.0 |
 
