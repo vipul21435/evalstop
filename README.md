@@ -292,9 +292,9 @@ without replacement. That matters for what the statements above mean, because th
    `m`, so their guarantee does not carry over to this target by the same argument.
 
 For the second target, `--population N` (in Python `BettingCS(population=N)`) makes the betting sequence bet
-against that conditional mean instead, which restores the martingale (section 5 of Waudby-Smith and Ramdas,
-"Betting while sampling without replacement"), and drops candidate means that the scores seen so far make
-impossible. The interval then covers the full-benchmark mean at every look and closes on it at the last item. In
+against that conditional mean instead, which restores the martingale (section 5 of the same paper by
+Waudby-Smith and Ramdas, on betting while sampling without replacement), and drops candidate means that the
+scores seen so far make impossible. The interval then covers the full-benchmark mean at every look and closes on it at the last item. In
 the quickstart example, `evalstop monitor examples/results.jsonl --model model-a --population 300` ends at
 [0.7190, 0.7210] around the realised 0.72, where the default ends at [0.6770, 0.8540].
 
