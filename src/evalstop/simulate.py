@@ -28,10 +28,13 @@ _VALID = {
     "betting": "yes",
     "mixture": "yes",
     "discordant": "yes",
+    "obf": "planned looks",
+    "pocock": "planned looks",
+    "sprt": "yes",
     "naive": "no",
     "fixed": "one look",
 }
-_BINARY_ONLY = ("discordant", "naive", "fixed")
+_BINARY_ONLY = ("discordant", "obf", "pocock", "sprt", "naive", "fixed")
 # Largest number of difference values held in memory at once.
 _CHUNK_CELLS = 4_000_000
 
@@ -46,18 +49,21 @@ def _check_rules(names: Sequence[str]) -> tuple[str, ...]:
 
 
 def _run_all(
-    names: Sequence[str],
-    d: np.ndarray,
-    alpha: float,
-    min_effect: float | None,
-    tune_at: float,
-    every: int,
+    names: Sequence[str], d: np.ndarray, alpha: float, options: dict[str, object]
 ) -> dict[str, rules.Outcome]:
+    return {name: rules.run_rule(name, d, alpha, **options) for name in names}
+
+
+def _options(
+    min_effect: float | None, tune_at: float, every: int, looks: int, beta: float, win_rate: float
+) -> dict[str, object]:
     return {
-        name: rules.run_rule(
-            name, d, alpha, min_effect=min_effect, tune_at=tune_at, every=every
-        )
-        for name in names
+        "min_effect": min_effect,
+        "tune_at": tune_at,
+        "every": every,
+        "looks": looks,
+        "beta": beta,
+        "win_rate": win_rate,
     }
 
 
@@ -172,6 +178,9 @@ def simulate(
     min_effect: float | None = None,
     tune_at: float = 200,
     every: int = 1,
+    looks: int = 5,
+    beta: float = 0.2,
+    win_rate: float = 0.65,
     seed: int = 0,
 ) -> SimulationReport:
     """Simulate paired pass/fail results and run every rule on them.
@@ -188,6 +197,7 @@ def simulate(
         raise ValueError("items and runs must be at least 1")
     if not 0.0 < discordance <= 1.0:
         raise ValueError("discordance must lie in (0, 1]")
+    options = _options(min_effect, tune_at, every, looks, beta, win_rate)
     rng = np.random.default_rng(seed)
     chunk = max(1, min(runs, _CHUNK_CELLS // items))
     rows: list[SimulationRow] = []
@@ -199,7 +209,7 @@ def simulate(
         for start in range(0, runs, chunk):
             u = rng.random((min(chunk, runs - start), items))
             d = (u < p_plus).astype(float) - ((u >= p_plus) & (u < discordance)).astype(float)
-            parts.append(_run_all(names, d, alpha, min_effect, tune_at, every))
+            parts.append(_run_all(names, d, alpha, options))
         truth = int(np.sign(effect))
         for name, outcome in _merge(parts).items():
             decided = (outcome.decision == rules.A_BETTER) | (outcome.decision == rules.B_BETTER)
@@ -356,6 +366,9 @@ def replay(
     min_effect: float | None = None,
     tune_at: float = 200,
     every: int = 1,
+    looks: int = 5,
+    beta: float = 0.2,
+    win_rate: float = 0.65,
     seed: int = 0,
     source: str = "",
 ) -> ReplayReport:
@@ -382,6 +395,7 @@ def replay(
             raise ValueError("the chosen rules need pass/fail scores")
     wins, losses = int(np.sum(diff > 0)), int(np.sum(diff < 0))
     full = int(rules.fixed_rule(diff, alpha).decision[0])
+    options = _options(min_effect, tune_at, every, looks, beta, win_rate)
     rng = np.random.default_rng(seed)
     chunk = max(1, min(orders, _CHUNK_CELLS // n))
     parts = []
@@ -391,7 +405,7 @@ def replay(
         if null:
             d *= rng.choice(np.array([-1.0, 1.0]), size=d.shape)
         d = rng.permuted(d, axis=1)
-        parts.append(_run_all(names, d, alpha, min_effect, tune_at, every))
+        parts.append(_run_all(names, d, alpha, options))
     rows = []
     for name, outcome in _merge(parts).items():
         decision = np.where(outcome.decision == rules.FUTILE, rules.UNDECIDED, outcome.decision)

@@ -126,10 +126,16 @@ def test_error_rates_under_the_null():
         outcome = rules.run_rule(name, paths, alpha)
         assert outcome.stop.min() >= 1 and outcome.stop.max() <= n
         assert np.all(outcome.stop[outcome.decision == rules.UNDECIDED] == n)
-        rates[name] = float(np.mean(outcome.decision != rules.UNDECIDED))
+        picked = (outcome.decision == rules.A_BETTER) | (outcome.decision == rules.B_BETTER)
+        rates[name] = float(np.mean(picked))
     # Tolerance: three binomial standard errors above alpha.
     for name in ("betting", "mixture", "discordant", "fixed"):
         assert rates[name] <= limit, (name, rates[name])
+    # The group-sequential boundaries rest on a normal approximation: allow half a point more.
+    for name in ("obf", "pocock"):
+        assert rates[name] <= limit + 0.005, (name, rates[name])
+    # Wald's thresholds bound the error rate by alpha / (1 - beta), here with beta = 0.2.
+    assert rates["sprt"] <= alpha / 0.8 + 3.0 * math.sqrt(alpha * (1.0 - alpha) / runs)
     # Peeking after every item is far above its nominal level.
     assert rates["naive"] > 3.0 * alpha
 
@@ -151,6 +157,49 @@ def test_power_and_futility():
     strong = paired_paths(rng, runs, 600, effect=0.3, discordance=0.4)
     outcome = rules.betting_rule(strong, 0.05, min_effect=0.15)
     assert np.mean(outcome.decision == rules.FUTILE) <= 0.05
+
+
+def test_look_items():
+    assert rules.look_items(500, 5) == [100, 200, 300, 400, 500]
+    assert rules.look_items(10, 4) == [3, 5, 8, 10]
+    assert rules.look_items(3, 5) == [1, 2, 3]
+    with pytest.raises(ValueError, match="looks"):
+        rules.look_items(10, 0)
+
+
+def test_group_sequential_rule_hand_worked_stops():
+    # 100 items, looks after 20, 40, ... With only wins z = sqrt(k): 4.47 after 20 items is
+    # short of the first O'Brien-Fleming boundary 4.88 but beyond the Pocock boundary 2.44.
+    wins = np.ones(100)
+    obf = rules.group_sequential_rule(wins, 0.05, looks=5, spending="obf")
+    assert (int(obf.stop[0]), int(obf.decision[0])) == (40, rules.A_BETTER)
+    pocock = rules.group_sequential_rule(-wins, 0.05, looks=5, spending="pocock")
+    assert (int(pocock.stop[0]), int(pocock.decision[0])) == (20, rules.B_BETTER)
+    # A lead inside one group is not seen until the next planned look.
+    late = np.concatenate([np.zeros(21), np.ones(79)])
+    outcome = rules.group_sequential_rule(late, 0.05, looks=5, spending="pocock")
+    assert int(outcome.stop[0]) == 40
+    ties = rules.group_sequential_rule(np.zeros(50), 0.05)
+    assert (int(ties.stop[0]), int(ties.decision[0])) == (50, rules.UNDECIDED)
+
+
+def test_sprt_rule_hand_worked_stops():
+    # Thresholds at alpha / 2 = 0.025 and beta = 0.2: log(0.8 / 0.025) = 3.466 at the top,
+    # log(0.2 / 0.975) = -1.584 at the bottom. A win adds log(1.3) = 0.262 to the test for A.
+    needed = math.ceil(math.log(0.8 / 0.025) / math.log(1.3))
+    assert needed == 14
+    outcome = rules.sprt_rule(np.ones(40), 0.05, beta=0.2, win_rate=0.65)
+    assert (int(outcome.stop[0]), int(outcome.decision[0])) == (14, rules.A_BETTER)
+    outcome = rules.sprt_rule(-np.ones(40), 0.05, beta=0.2, win_rate=0.65)
+    assert (int(outcome.stop[0]), int(outcome.decision[0])) == (14, rules.B_BETTER)
+    # Alternating wins and losses: each pair adds log(1.3) + log(0.7) = -0.0943 to both
+    # tests. The test for A reaches -1.584 after 17 pairs (item 34); the test for B dips
+    # further after each win and gets there at item 29. Futility needs both.
+    alternating = np.tile([1.0, -1.0], 30)
+    outcome = rules.sprt_rule(alternating, 0.05, beta=0.2, win_rate=0.65)
+    assert (int(outcome.stop[0]), int(outcome.decision[0])) == (34, rules.FUTILE)
+    with pytest.raises(ValueError, match="win_rate"):
+        rules.sprt_rule(alternating, 0.05, win_rate=0.5)
 
 
 def test_summarise():

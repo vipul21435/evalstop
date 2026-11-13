@@ -18,6 +18,15 @@ Baselines:
 * ``naive``: the exact McNemar test repeated at every look, stopping the first
   time it is significant. Its error rate is not ``alpha``;
 * ``fixed``: the exact McNemar test once, after the last item.
+
+Classical sequential designs, valid under their own conditions:
+
+* ``obf`` and ``pocock``: group-sequential McNemar z-tests at a few planned
+  looks with alpha-spending boundaries (valid at those looks only, and by a
+  normal approximation);
+* ``sprt``: two one-sided Wald tests on the discordant pairs, of a win rate of
+  1/2 against a chosen win rate in either direction, which can also stop for
+  futility.
 """
 
 from __future__ import annotations
@@ -28,8 +37,10 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
+from evalstop.gsd import design
 from evalstop.mixture import best_rho, normal_mixture_boundary
 from evalstop.sequence import check_alpha
+from evalstop.sprt import wald_thresholds
 from evalstop.stats import discordant_log_evalue, mcnemar_critical
 
 A_BETTER = 1
@@ -245,7 +256,72 @@ def fixed_rule(d: ArrayLike, alpha: float = 0.05) -> Outcome:
     return _mcnemar_rule(paths, alpha, looks)
 
 
-RULES = ("betting", "mixture", "discordant", "naive", "fixed")
+def look_items(n: int, looks: int) -> list[int]:
+    """Item counts of ``looks`` equally spaced looks over ``n`` items."""
+    if looks < 1:
+        raise ValueError("looks must be at least 1")
+    return sorted({math.ceil(n * (j + 1) / looks) for j in range(looks)})
+
+
+def group_sequential_rule(
+    d: ArrayLike, alpha: float = 0.05, *, looks: int = 5, spending: str = "obf"
+) -> Outcome:
+    """McNemar z-test at equally spaced planned looks with alpha-spending boundaries.
+
+    At each look the statistic ``(wins - losses) / sqrt(wins + losses)`` is
+    compared with the boundary of :func:`evalstop.gsd.design` for the share of
+    items seen so far.
+    """
+    alpha = check_alpha(alpha)
+    paths = _paths(d)
+    n = paths.shape[1]
+    at = look_items(n, looks)
+    plan = design([t / n for t in at], alpha, spending)
+    wins, losses = _counts(paths)
+    index = np.asarray(at) - 1
+    w, lo = wins[:, index], losses[:, index]
+    z = (w - lo) / np.sqrt(np.maximum(w + lo, 1))
+    crossed = np.abs(z) >= np.asarray(plan.z)[None, :]
+    look = _first_true(crossed)
+    first = np.where(look > 0, np.asarray(at)[np.maximum(look - 1, 0)], 0)
+    return _directed(n, first, wins, losses)
+
+
+def sprt_rule(
+    d: ArrayLike, alpha: float = 0.05, *, beta: float = 0.2, win_rate: float = 0.65
+) -> Outcome:
+    """Two one-sided Wald tests on the discordant pairs.
+
+    One tests "a discordant pair favours A with probability 1/2" against
+    ``win_rate``, the other against ``1 - win_rate``, each at ``alpha / 2``
+    with Wald's thresholds. The run stops for A or B when the matching test
+    chooses its alternative, and for futility once both have chosen 1/2.
+    """
+    alpha = check_alpha(alpha)
+    if not 0.5 < win_rate < 1.0:
+        raise ValueError("win_rate must lie strictly between 0.5 and 1")
+    upper, lower = wald_thresholds(alpha / 2.0, beta)
+    paths = _paths(d)
+    n = paths.shape[1]
+    toward = math.log(win_rate / 0.5)
+    away = math.log((1.0 - win_rate) / 0.5)
+    win, loss = paths > 0, paths < 0
+    llr_a = np.cumsum(win * toward + loss * away, axis=1)
+    llr_b = np.cumsum(win * away + loss * toward, axis=1)
+
+    def ends(llr: NDArray[np.float64]) -> tuple[NDArray[np.int64], NDArray[np.int64]]:
+        chose_alt, chose_null = _first_true(llr >= upper), _first_true(llr <= lower)
+        alt_first = (chose_alt > 0) & ((chose_null == 0) | (chose_alt < chose_null))
+        null_first = (chose_null > 0) & ~alt_first
+        return np.where(alt_first, chose_alt, 0), np.where(null_first, chose_null, 0)
+
+    a_alt, a_null = ends(llr_a)
+    b_alt, b_null = ends(llr_b)
+    futile = np.where((a_null > 0) & (b_null > 0), np.maximum(a_null, b_null), 0)
+    return _combine(n, a_alt, b_alt, futile)
+
+
+RULES = ("betting", "mixture", "discordant", "obf", "pocock", "sprt", "naive", "fixed")
 
 
 def run_rule(
@@ -258,6 +334,9 @@ def run_rule(
     every: int = 1,
     prior: float = 1.0,
     scale: float = 1.0,
+    looks: int = 5,
+    beta: float = 0.2,
+    win_rate: float = 0.65,
 ) -> Outcome:
     """Run the rule called ``name`` on the difference paths ``d``."""
     if name == "betting":
@@ -266,6 +345,10 @@ def run_rule(
         return mixture_rule(d, alpha, tune_at=tune_at, min_effect=min_effect, scale=scale)
     if name == "discordant":
         return discordant_rule(d, alpha, prior=prior)
+    if name in ("obf", "pocock"):
+        return group_sequential_rule(d, alpha, looks=looks, spending=name)
+    if name == "sprt":
+        return sprt_rule(d, alpha, beta=beta, win_rate=win_rate)
     if name == "naive":
         return naive_rule(d, alpha, every=every)
     if name == "fixed":

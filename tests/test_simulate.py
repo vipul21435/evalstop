@@ -35,7 +35,10 @@ def test_simulate_reports_error_rates_power_and_items():
     assert rows[(0.15, "discordant")].right > 0.8
     assert rows[(0.15, "discordant")].mean_items < rows[(0.15, "fixed")].mean_items == 300.0
     assert rows[(0.15, "fixed")].right >= rows[(0.15, "betting")].right
-    assert all(row.futile == 0.0 for row in report.rows)
+    assert all(row.futile == 0.0 for row in report.rows if row.rule != "sprt")
+    assert rows[(0.0, "sprt")].futile > 0.5
+    assert rows[(0.0, "obf")].wrong <= limit + 0.005
+    assert rows[(0.15, "obf")].mean_items < 300.0
 
 
 def test_simulate_is_reproducible_and_chunking_does_not_change_it(monkeypatch):
@@ -117,6 +120,8 @@ def test_replay_null_measures_false_positives():
     # Tolerance: three binomial standard errors above alpha.
     for name in ("betting", "mixture", "discordant", "fixed"):
         assert rows[name].decided <= limit
+    for name in ("obf", "pocock"):
+        assert rows[name].decided <= limit + 0.005
     assert rows["naive"].decided > 0.15
     text = report.to_markdown()
     assert "labels swapped at random within each pair (null)" in text
@@ -140,9 +145,9 @@ def test_replay_skips_mcnemar_rules_for_graded_scores():
     a, b = rng.random(150), rng.random(150) * 0.6
     pairs = Pairs("a", "b", tuple(str(i) for i in range(150)), a, b)
     report = replay(pairs, orders=50, seed=1)
-    assert report.skipped == ("discordant", "naive", "fixed")
+    assert report.skipped == ("discordant", "obf", "pocock", "sprt", "naive", "fixed")
     assert [row.rule for row in report.rows] == ["betting", "mixture"]
-    assert "skipped (scores are not pass/fail): discordant, naive, fixed" in report.to_markdown()
+    assert "skipped (scores are not pass/fail): discordant, obf, " in report.to_markdown()
     with pytest.raises(ValueError, match="need pass/fail scores"):
         replay(pairs, orders=10, rule_names=("naive",))
 

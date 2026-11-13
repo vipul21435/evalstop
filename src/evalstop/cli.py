@@ -1,4 +1,4 @@
-"""Command line interface: ``evalstop monitor | compare | simulate | replay``."""
+"""Command line interface: ``evalstop monitor | compare | design | simulate | replay``."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import json
 import sys
 from collections.abc import Sequence
 
-from evalstop import __version__, rules
+from evalstop import __version__, gsd, rules
 from evalstop.io import FORMATS, read_records, scores_for
 from evalstop.monitor import METHODS, monitor_scores
 from evalstop.paired import compare_pairs, pair_records
@@ -101,6 +101,25 @@ def _add_rules(parser: argparse.ArgumentParser) -> None:
         default=1,
         help="naive rule: number of items between looks (default: 1)",
     )
+    parser.add_argument(
+        "--looks",
+        type=int,
+        default=5,
+        help="obf and pocock rules: number of equally spaced planned looks (default: 5)",
+    )
+    parser.add_argument(
+        "--win-rate",
+        type=float,
+        default=0.65,
+        help="sprt rule: share of discordant items the better model wins under the "
+        "alternative (default: 0.65)",
+    )
+    parser.add_argument(
+        "--beta",
+        type=float,
+        default=0.2,
+        help="sprt rule: chance of missing a win rate that large (default: 0.2)",
+    )
     parser.add_argument("--seed", type=int, default=0, help="random seed (default: 0)")
 
 
@@ -154,6 +173,26 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_tuning(compare)
     _add_output(compare)
     compare.set_defaults(run=_compare)
+
+    plan = commands.add_parser(
+        "design",
+        help="group-sequential boundaries for a planned number of looks",
+        description=(
+            "Print two-sided alpha-spending boundaries for equally spaced looks: the "
+            "critical value of the z statistic at each look and the error rate spent."
+        ),
+    )
+    plan.add_argument("--looks", type=int, default=5, help="planned looks (default: 5)")
+    plan.add_argument(
+        "--spending",
+        choices=gsd.SPENDING,
+        default="obf",
+        help="spending function: obf (O'Brien-Fleming type) or pocock (default: obf)",
+    )
+    plan.add_argument("--items", type=int, help="planned number of items, to show item counts")
+    _add_alpha(plan)
+    _add_output(plan)
+    plan.set_defaults(run=_design)
 
     sim = commands.add_parser(
         "simulate",
@@ -248,6 +287,10 @@ def _compare(args: argparse.Namespace):
     )
 
 
+def _design(args: argparse.Namespace):
+    return gsd.DesignReport(gsd.design(args.looks, args.alpha, args.spending), args.items)
+
+
 def _simulate(args: argparse.Namespace):
     return simulate(
         effects=args.effects,
@@ -259,6 +302,9 @@ def _simulate(args: argparse.Namespace):
         min_effect=args.min_effect,
         tune_at=args.tune_at,
         every=args.look_every,
+        looks=args.looks,
+        beta=args.beta,
+        win_rate=args.win_rate,
         seed=args.seed,
     )
 
@@ -275,6 +321,9 @@ def _replay(args: argparse.Namespace):
         min_effect=args.min_effect,
         tune_at=args.tune_at,
         every=args.look_every,
+        looks=args.looks,
+        beta=args.beta,
+        win_rate=args.win_rate,
         seed=args.seed,
         source=_source(args),
     )
