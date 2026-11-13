@@ -473,7 +473,8 @@ designs give up little power (0.53 and 0.45) because they look only five times. 
   tighter; they are not implemented. In the simulation above its power is somewhat below the discordant-pair
   test's.
 - The discordant-pair test, Wald's test, the group-sequential rules and the McNemar baselines need pass/fail
-  scores. For graded scores `compare` and `replay` run only the sequences on the difference.
+  scores. For graded scores `compare` and `replay` run only the sequences on the difference. `simulate` draws
+  pass/fail results only, and `replay` needs scores in [0, 1].
 - The group-sequential boundaries rely on a normal approximation and on looking only at the planned looks. The
   rules use equally spaced looks. `design` prints boundaries but does not compute power or a sample size.
 - Wald's thresholds bound the false-positive rate by `alpha / (1 - beta)`, not `alpha`.
@@ -498,7 +499,8 @@ W; the betting interval, with and without replacement, against a direct recomput
 vectorised rules against the sequences item by item; Wald's test against his closed-form boundaries, error bounds
 and sample-size approximation; the alpha-spending boundaries against scipy's multivariate normal integral and
 simulated Brownian paths; and the coverage and false-positive rates of every valid rule by seeded simulation
-(at most alpha plus three binomial standard errors, with half a point more for the group-sequential rules).
+(at most alpha plus three binomial standard errors, with half a point more for the group-sequential rules and
+Wald's bound `alpha / (1 - beta)` for his test).
 
 ## Related tools
 
