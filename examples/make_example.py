@@ -13,6 +13,7 @@ Run from the repository root:
 
 from __future__ import annotations
 
+import argparse
 import json
 import math
 from pathlib import Path
@@ -43,11 +44,21 @@ def simulate(seed: int = SEED, items: int = ITEMS) -> list[dict[str, object]]:
     return rows
 
 
-def main() -> None:
-    out = Path(__file__).with_name("results.jsonl")
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Write simulated per-item results for two models (not real data)."
+    )
+    parser.add_argument(
+        "--out",
+        type=Path,
+        help="file to write (default: results.jsonl next to this script)",
+    )
+    args = parser.parse_args(argv)
+    out = args.out if args.out is not None else Path(__file__).with_name("results.jsonl")
     out.write_text("".join(json.dumps(row) + "\n" for row in simulate()), encoding="utf-8")
     print(f"wrote {out.name}: {ITEMS} items, {len(PASS_RATES)} models")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

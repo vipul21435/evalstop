@@ -11,10 +11,11 @@ import numpy as np
 import pytest
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
+EXAMPLES = SCRIPTS.parent / "examples"
 
 
-def load(name: str):
-    spec = importlib.util.spec_from_file_location(name, SCRIPTS / f"{name}.py")
+def load(name: str, folder: Path = SCRIPTS):
+    spec = importlib.util.spec_from_file_location(name, folder / f"{name}.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -73,3 +74,25 @@ def test_study_prints_its_tables_and_writes_the_chart(tmp_path, capsys):
     saved = json.loads(dump.read_text(encoding="utf-8"))
     assert len(saved) == len(study.PAIRS) and saved[0]["null"]["null"] is True
     assert chart.read_bytes().startswith(b"\x89PNG")
+
+
+def test_example_generator_takes_an_output_path_and_prints_help(tmp_path, capsys):
+    make = load("make_example", EXAMPLES)
+    committed = (EXAMPLES / "results.jsonl").read_bytes()
+    out = tmp_path / "made.jsonl"
+    with pytest.raises(SystemExit) as excinfo:
+        make.main(["--help"])
+    assert excinfo.value.code == 0
+    assert "usage:" in capsys.readouterr().out and not out.exists()
+    with pytest.raises(SystemExit) as excinfo:
+        make.main(["--out", str(out), "--help"])
+    assert excinfo.value.code == 0 and not out.exists()
+    capsys.readouterr()
+
+    assert make.main(["--out", str(out)]) == 0
+    assert "wrote made.jsonl: 300 items, 2 models" in capsys.readouterr().out
+    rows = [json.loads(line) for line in out.read_text(encoding="utf-8").splitlines()]
+    assert rows == make.simulate()
+    assert len(rows) == 600 and {row["model"] for row in rows} == {"model-a", "model-b"}
+    # Neither call touched the committed example.
+    assert (EXAMPLES / "results.jsonl").read_bytes() == committed
