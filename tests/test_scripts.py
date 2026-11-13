@@ -103,3 +103,17 @@ def test_example_generator_takes_an_output_path_and_prints_help(tmp_path, capsys
     assert len(rows) == 600 and {row["model"] for row in rows} == {"model-a", "model-b"}
     # Neither call touched the committed example.
     assert (EXAMPLES / "results.jsonl").read_bytes() == committed
+
+
+def test_sorted_order_check_shows_the_failure_and_the_shuffled_control(capsys):
+    check = load("sorted_order_check")
+    shares = check.measure(runs=20, items=200, alpha=0.05, seed=1)
+    assert shares["sorted_miss"] >= 0.8
+    assert shares["shuffled_miss"] <= 0.25
+    assert shares["sorted_empty"] <= shares["sorted_miss"]
+    assert check.main(["--runs", "3", "--items", "60", "--seed", "2"]) == 0
+    out = capsys.readouterr().out.splitlines()
+    assert out[0].startswith("3 runs of 60 items, pass probability 0.8 down to 0.2 (pool mean 0.5)")
+    assert out[0].endswith("alpha 0.05, seed 2")
+    assert out[1].startswith("sorted by difficulty: true mean excluded in ")
+    assert out[2].startswith("same scores shuffled: true mean excluded in ")

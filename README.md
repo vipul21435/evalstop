@@ -459,9 +459,11 @@ designs give up little power (0.53 and 0.45) because they look only five times. 
 ## Limitations
 
 - The guarantees need every score to have the same expected value given the earlier ones: items in an order
-  unrelated to their difficulty, for example shuffled. A file sorted by difficulty breaks them. `monitor` and
-  `compare` warn when the running intersection becomes empty, which is one symptom, but the problem cannot be
-  detected in general.
+  unrelated to their difficulty. Shuffle the items before a run. A file sorted by difficulty breaks the guarantees
+  and the tool will almost never notice: with the pass probability falling from 0.8 for the first item to 0.2 for
+  the last of 300, `python scripts/sorted_order_check.py --runs 1000 --seed 0` has the betting sequence exclude
+  the true mean 0.5 in 96.7 percent of runs, while the empty-intersection warning of `monitor` and `compare` fires
+  in none of them. The same scores in shuffled order exclude it in 4.0 percent of runs.
 - By default the target is the pass rate on the pool the items came from, not the score on exactly this benchmark;
   see the section on sampling without replacement. Only the betting sequence has a without-replacement form
   (`--population`); the mixture sequence, the discordant-pair test, Wald's test and the group-sequential rules do
