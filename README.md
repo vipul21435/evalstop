@@ -454,8 +454,11 @@ With no difference the betting sequence and the discordant-pair test are wrong i
 in 26 percent. At a 10-point effect the discordant-pair test finds the better model in 88 percent of runs with 253
 of the 500 items on average; the test on all 500 has power 0.98 and always uses 500. At a 5-point effect the cost
 of being valid at every look shows: power 0.20 and 0.24 against 0.51 for the single test. The group-sequential
-designs give up little power (0.53 and 0.45) because they look only five times. Wald's test stops for futility in
-93 percent of the null runs and uses 179 items on average there.
+rules reach 0.53 and 0.45, but they are not like for like with the single test: that one is the exact McNemar
+test, which is conservative (false-positive rate 0.039 at effect 0), while the group-sequential rules use a
+normal approximation (0.049 and 0.051). That difference, not an advantage of looking early, is why `obf` comes
+out above the single test. Wald's test stops for futility in 93 percent of the null runs and uses 179 items on
+average there.
 
 ## Limitations
 
