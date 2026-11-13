@@ -10,7 +10,6 @@ from evalstop.mixture import MixtureCS, best_rho, mixture_cs, normal_mixture_bou
 from evalstop.monitor import monitor_scores
 from evalstop.paired import Pairs, compare_pairs, pair_records
 from evalstop.sequence import ConfidenceSequence, OnlineCS, Stop
-from evalstop.simulate import replay, simulate
 from evalstop.sprt import BernoulliSPRT, sprt_bernoulli
 from evalstop.stats import mcnemar_exact_p
 
@@ -35,7 +34,5 @@ __all__ = [
     "monitor_scores",
     "normal_mixture_boundary",
     "pair_records",
-    "replay",
-    "simulate",
     "sprt_bernoulli",
 ]

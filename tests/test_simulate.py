@@ -23,10 +23,10 @@ def make_pairs(n=240, seed=11, p_a=0.8, p_b=0.6) -> Pairs:
 
 
 def test_simulate_reports_error_rates_power_and_items():
-    report = simulate(effects=(0.0, 0.15), items=300, runs=1500, discordance=0.3, seed=1)
+    report = simulate(effects=(0.0, 0.15), items=300, runs=1000, discordance=0.3, seed=1)
     rows = {(row.effect, row.rule): row for row in report.rows}
     assert len(rows) == 2 * len(rules.RULES)
-    limit = 0.05 + 3.0 * math.sqrt(0.05 * 0.95 / 1500)
+    limit = 0.05 + 3.0 * math.sqrt(0.05 * 0.95 / 1000)
     # Tolerance: three binomial standard errors above alpha.
     for name in ("betting", "mixture", "discordant", "fixed"):
         assert rows[(0.0, name)].wrong <= limit

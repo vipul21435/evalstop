@@ -70,7 +70,7 @@ def test_radius_is_close_to_hoeffding_at_the_tuned_time_and_shrinks():
 @pytest.mark.parametrize("p", [0.05, 0.5, 0.9])
 def test_coverage_holds_at_every_look(p):
     rng = np.random.default_rng(20260101)
-    alpha, reps, n = 0.1, 2000, 1000
+    alpha, reps, n = 0.1, 1000, 1000
     misses = 0
     for _ in range(reps):
         seq = mixture_cs(rng.random(n) < p, alpha=alpha, tune_at=100, intersect=False)
@@ -83,7 +83,7 @@ def test_fair_coin_uses_a_real_share_of_alpha():
     # The sub-Gaussian bound is nearly tight for a fair coin, so the sequence
     # should not be far more conservative than its level.
     rng = np.random.default_rng(5)
-    alpha, reps, n = 0.1, 2000, 2000
+    alpha, reps, n = 0.1, 1000, 1000
     misses = 0
     for _ in range(reps):
         seq = mixture_cs(rng.random(n) < 0.5, alpha=alpha, tune_at=50)

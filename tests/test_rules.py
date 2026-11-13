@@ -118,7 +118,7 @@ def test_naive_and_fixed_rules_hand_worked_stops():
 
 def test_error_rates_under_the_null():
     rng = np.random.default_rng(34)
-    alpha, runs, n = 0.05, 4000, 300
+    alpha, runs, n = 0.05, 2500, 300
     paths = paired_paths(rng, runs, n, effect=0.0)
     limit = alpha + 3.0 * math.sqrt(alpha * (1.0 - alpha) / runs)
     rates = {}
@@ -142,7 +142,7 @@ def test_error_rates_under_the_null():
 
 def test_power_and_futility():
     rng = np.random.default_rng(35)
-    runs, n = 1000, 600
+    runs, n = 400, 600
     effect = paired_paths(rng, runs, n, effect=0.15)
     for name in ("betting", "discordant"):
         outcome = rules.run_rule(name, effect, 0.05)

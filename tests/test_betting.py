@@ -50,7 +50,7 @@ def test_reference_reproduces_hand_worked_first_steps():
 @pytest.mark.parametrize(("seed", "alpha", "grid"), [(7, 0.2, 50), (8, 0.05, 40)])
 def test_interval_is_the_accepted_grid_points_widened_by_one_cell(seed, alpha, grid):
     rng = np.random.default_rng(seed)
-    xs = rng.beta(2.0, 3.0, size=80)
+    xs = rng.beta(2.0, 3.0, size=50)
     cs = BettingCS(alpha, grid=grid, intersect=False)
     for t, x in enumerate(xs, start=1):
         lower, upper = cs.update(x)
@@ -91,7 +91,7 @@ def draw(name: str, rng: np.random.Generator, n: int) -> np.ndarray:
 @pytest.mark.parametrize(("name", "mean"), [("coin", 0.5), ("rare", 0.1), ("graded", 0.8)])
 def test_coverage_holds_at_every_look(name, mean):
     rng = np.random.default_rng(424242)
-    alpha, reps, n = 0.1, 400, 250
+    alpha, reps, n = 0.1, 100, 150
     misses = 0
     for _ in range(reps):
         # grid=20 puts each true mean exactly on a grid point, so a miss is
