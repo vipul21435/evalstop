@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "evalstop"
 dynamic = ["version"]
-description = "Monitor a running evaluation with confidence sequences that stay valid however often you look."
+description = "Confidence sequences and sequential tests for stopping a model evaluation early without inflating the error rate."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
