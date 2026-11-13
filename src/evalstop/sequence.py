@@ -189,7 +189,10 @@ class OnlineCS(ABC):
 
     def update(self, score: float) -> tuple[float, float]:
         """Add one score and return the new ``(lower, upper)`` limits."""
-        value = float(score)
+        try:
+            value = float(score)
+        except (TypeError, ValueError):
+            raise ValueError(f"score {score!r} is not a number") from None
         if not math.isfinite(value):
             raise ValueError("scores must be finite numbers")
         unit = (value - self.lo) / (self.hi - self.lo)
