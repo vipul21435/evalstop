@@ -294,12 +294,15 @@ def compare_pairs(
     grid: int = 1000,
     tune_at: float = 200,
     every: int | None = None,
+    population: int | None = None,
     source: str = "",
 ) -> CompareReport:
     """Run every comparison rule over ``pairs`` in their evaluation order.
 
     ``lo`` and ``hi`` bound a single score, so a difference lies in
     ``[lo - hi, hi - lo]``. ``min_effect`` turns on the futility rule.
+    ``population`` is the number of paired items in the whole benchmark; with
+    it the betting sequence covers the mean difference over exactly those.
     """
     n = len(pairs)
     if n == 0:
@@ -313,10 +316,17 @@ def compare_pairs(
         raise ValueError(f"min_effect must lie strictly between 0 and {scale:g}")
     diff = pairs.diff
     if method == "betting":
-        sequence = betting_cs(diff, alpha, lo=-scale, hi=scale, grid=grid)
+        sequence = betting_cs(
+            diff, alpha, lo=-scale, hi=scale, grid=grid, population=population
+        )
         settings: dict[str, float] = {"grid": grid}
         label = "betting sequence on the difference"
+        if population is not None:
+            settings["population"] = population
+            label = "betting sequence on the difference over the whole benchmark"
     elif method == "mixture":
+        if population is not None:
+            raise ValueError("population is only supported by the betting method")
         sequence = mixture_cs(diff, alpha, lo=-scale, hi=scale, tune_at=tune_at)
         settings = {"tune_at": tune_at}
         label = "mixture sequence on the difference"

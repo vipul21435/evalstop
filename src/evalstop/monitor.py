@@ -169,6 +169,7 @@ def monitor_scores(
     grid: int = 1000,
     tune_at: float = 200,
     every: int | None = None,
+    population: int | None = None,
     source: str = "",
     model: str = "",
 ) -> MonitorReport:
@@ -177,15 +178,20 @@ def monitor_scores(
     ``threshold`` asks at which look the mean was first known to be above or
     below that value; ``width`` asks at which look the interval was first that
     narrow. ``every`` sets the spacing of the trace rows (about ten rows by
-    default).
+    default). ``population`` is the number of items in the whole benchmark;
+    with it the betting sequence covers the mean over exactly those items.
     """
     scores = list(scores)
     if not scores:
         raise ValueError("no scores to monitor")
     if method == "betting":
-        sequence = betting_cs(scores, alpha, lo=lo, hi=hi, grid=grid)
+        sequence = betting_cs(scores, alpha, lo=lo, hi=hi, grid=grid, population=population)
         settings: dict[str, float] = {"grid": grid}
+        if population is not None:
+            settings["population"] = population
     elif method == "mixture":
+        if population is not None:
+            raise ValueError("population is only supported by the betting method")
         sequence = mixture_cs(scores, alpha, lo=lo, hi=hi, tune_at=tune_at)
         settings = {"tune_at": tune_at}
     else:

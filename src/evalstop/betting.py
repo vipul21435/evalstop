@@ -32,6 +32,19 @@ set is an interval. It is tracked on an evenly spaced grid of candidate means.
 Each reported limit is the nearest rejected grid point outside the set (or the
 score bound when no grid point on that side is rejected), so the grid can make
 the interval wider but never narrower.
+
+Sampling without replacement. A benchmark is a fixed set of ``N`` items, and
+running it in random order draws their scores without replacement. The mean of
+those ``N`` scores is then a fixed number, and if it equals ``m`` the next
+score has conditional mean
+
+    m_t = (N * m - (sum of the first t - 1 scores)) / (N - t + 1),
+
+not ``m``. With ``population=N`` the wealth processes bet on ``x - m_t``
+instead of ``x - m`` (the without-replacement capital process of section 5 of
+the same paper), which keeps them martingales for the true mean of the ``N``
+scores. A candidate that the scores seen so far make impossible is dropped, so
+the interval shrinks to the exact mean once every item has been seen.
 """
 
 from __future__ import annotations
@@ -65,6 +78,10 @@ class BettingCS(OnlineCS):
     intersect:
         Report the intersection of all intervals so far (the default), which
         makes the limits monotone.
+    population:
+        Number of items in the whole benchmark. When given, the scores are
+        treated as draws without replacement from those items in random order
+        and the sequence covers the mean over exactly those items.
     """
 
     method = "betting"
@@ -79,8 +96,12 @@ class BettingCS(OnlineCS):
         c: float = 0.5,
         theta: float = 0.5,
         intersect: bool = True,
+        population: int | None = None,
     ) -> None:
         super().__init__(alpha, lo, hi, intersect)
+        if population is not None and (int(population) != population or population < 1):
+            raise ValueError("population must be a whole number of at least 1 item")
+        self.population = None if population is None else int(population)
         if int(grid) != grid or grid < 2:
             raise ValueError("grid must be a whole number of at least 2 cells")
         if not 0.0 < c < 1.0:
@@ -101,14 +122,27 @@ class BettingCS(OnlineCS):
         self._log_reject = -math.log(self.alpha)
         self._bet_scale = 2.0 * math.log(2.0 / self.alpha)
         self._sq_dev = 0.0
+        self._possible = np.ones(self.grid + 1, dtype=bool)
 
     def _step(self, unit_score: float) -> tuple[float, float]:
         t = self._n + 1
         variance = (0.25 + self._sq_dev) / t
         bet = math.sqrt(self._bet_scale / (variance * t * math.log(t + 1.0)))
-        diff = unit_score - self._m
-        self._log_plus += np.log1p(np.minimum(bet, self._cap_plus) * diff)
-        self._log_minus += np.log1p(-np.minimum(bet, self._cap_minus) * diff)
+        if self.population is None:
+            diff = unit_score - self._m
+            cap_plus, cap_minus = self._cap_plus, self._cap_minus
+        else:
+            if t > self.population:
+                raise ValueError(f"more scores than the population of {self.population} items")
+            # Mean of the next score if the mean of the whole population is m.
+            left = self.population - self._n
+            mean_next = np.clip((self.population * self._m - self._sum) / left, 0.0, 1.0)
+            diff = unit_score - mean_next
+            with np.errstate(divide="ignore"):
+                cap_plus = self.c / mean_next
+                cap_minus = self.c / (1.0 - mean_next)
+        self._log_plus += np.log1p(np.minimum(bet, cap_plus) * diff)
+        self._log_minus += np.log1p(-np.minimum(bet, cap_minus) * diff)
         mu_hat = (0.5 + self._sum + unit_score) / (t + 1.0)
         self._sq_dev += (unit_score - mu_hat) ** 2
 
@@ -116,13 +150,29 @@ class BettingCS(OnlineCS):
             self._log_theta + self._log_plus,
             self._log_one_minus_theta + self._log_minus,
         )
+        below, above = 0, self.grid
+        if self.population is not None:
+            # The population total lies between the sum so far and that sum plus
+            # one point for every item not yet seen. Candidates outside that
+            # range are impossible and count as rejected.
+            total = self._sum + unit_score
+            low = total / self.population
+            high = (total + self.population - t) / self.population
+            self._possible &= (self._m >= low - 1e-9) & (self._m <= high + 1e-9)
+            log_capital = np.where(self._possible, log_capital, np.inf)
+            below = max(math.ceil(low * self.grid - 1e-9) - 1, 0)
+            above = min(math.floor(high * self.grid + 1e-9) + 1, self.grid)
         inside = np.flatnonzero(log_capital < self._log_reject)
         if inside.size:
             first, last = int(inside[0]), int(inside[-1])
-        else:
+        elif np.isfinite(log_capital).any():
             # Every grid point is rejected: the set lies inside the two cells
             # around the point with the smallest capital.
             first = last = int(np.argmin(log_capital))
+        else:
+            # No grid point is possible any more: the mean lies between the
+            # nearest impossible points on either side.
+            return float(self._m[below]), float(self._m[above])
         lower = self._m[max(first - 1, 0)]
         upper = self._m[min(last + 1, self.grid)]
         return float(lower), float(upper)
@@ -138,11 +188,21 @@ def betting_cs(
     c: float = 0.5,
     theta: float = 0.5,
     intersect: bool = True,
+    population: int | None = None,
 ) -> ConfidenceSequence:
     """Hedged-capital confidence sequence for the mean of ``scores``.
 
     Feeds the scores to :class:`BettingCS` in order and returns the limits
-    after each one.
+    after each one. See :class:`BettingCS` for ``population``.
     """
-    monitor = BettingCS(alpha, lo=lo, hi=hi, grid=grid, c=c, theta=theta, intersect=intersect)
+    monitor = BettingCS(
+        alpha,
+        lo=lo,
+        hi=hi,
+        grid=grid,
+        c=c,
+        theta=theta,
+        intersect=intersect,
+        population=population,
+    )
     return monitor.run(scores)

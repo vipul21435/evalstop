@@ -61,6 +61,12 @@ def _add_sequence(parser: argparse.ArgumentParser) -> None:
         help="betting: number of candidate values on the grid (default: 1000)",
     )
     parser.add_argument(
+        "--population",
+        type=int,
+        help="betting: number of items in the whole benchmark; the interval is then for "
+        "the mean over exactly those items, seen in random order without replacement",
+    )
+    parser.add_argument(
         "--every",
         type=int,
         help="print a trace row every this many scores (default: about ten rows)",
@@ -265,6 +271,7 @@ def _monitor(args: argparse.Namespace):
         grid=args.grid,
         tune_at=args.tune_at,
         every=args.every,
+        population=args.population,
         source=_source(args),
         model=model,
     )
@@ -283,6 +290,7 @@ def _compare(args: argparse.Namespace):
         grid=args.grid,
         tune_at=args.tune_at,
         every=args.every,
+        population=args.population,
         source=_source(args),
     )
 
