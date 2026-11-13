@@ -52,8 +52,11 @@ def test_fetch_reads_both_layouts_without_the_network(tmp_path, monkeypatch, cap
         fetch.main(["--out", str(out), "--submissions", "missing"])
 
 
-def test_study_prints_its_tables_and_writes_the_chart(tmp_path, capsys):
+def test_study_prints_its_tables_and_writes_the_chart(tmp_path, capsys, monkeypatch):
     study = load("swebench_study")
+    figures = []
+    original = study.draw
+    monkeypatch.setattr(study, "draw", lambda *args: figures.append(original(*args)))
     rng = np.random.default_rng(3)
     models = sorted({name for pair in study.PAIRS for name in pair})
     rates = dict(zip(models, np.linspace(0.45, 0.8, len(models)), strict=True))
@@ -74,6 +77,10 @@ def test_study_prints_its_tables_and_writes_the_chart(tmp_path, capsys):
     saved = json.loads(dump.read_text(encoding="utf-8"))
     assert len(saved) == len(study.PAIRS) and saved[0]["null"]["null"] is True
     assert chart.read_bytes().startswith(b"\x89PNG")
+    # The rule names under the right panel are slanted so that they do not overlap.
+    labels = figures[0].axes[1].get_xticklabels()
+    assert [label.get_text() for label in labels] == list(study.SHOWN)
+    assert all(label.get_rotation() == 30 for label in labels)
 
 
 def test_example_generator_takes_an_output_path_and_prints_help(tmp_path, capsys):

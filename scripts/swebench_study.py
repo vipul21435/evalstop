@@ -42,8 +42,11 @@ def table(header: list[str], rows: list[list[str]]) -> str:
 SHOWN = ("betting", "discordant", "sprt", "obf", "pocock", "naive")
 
 
-def draw(dump: list[dict], gaps: list[str], alpha: float, path: Path) -> None:
-    """Items used by each rule per pair, and false-positive rates under the null."""
+def draw(dump: list[dict], gaps: list[str], alpha: float, path: Path):
+    """Items used by each rule per pair, and false-positive rates under the null.
+
+    Saves the figure to ``path`` and returns it.
+    """
     import matplotlib
 
     matplotlib.use("Agg")
@@ -78,11 +81,14 @@ def draw(dump: list[dict], gaps: list[str], alpha: float, path: Path) -> None:
     colors = ["#d94801" if name == "naive" else "#4292c6" for name in SHOWN]
     right.bar(list(SHOWN), means, yerr=[low, high], color=colors, capsize=3)
     right.axhline(alpha, color="#444444", linewidth=0.8, linestyle="--")
+    # Slanted so that neighbouring rule names do not run together.
+    right.tick_params(axis="x", labelrotation=30)
     right.set_ylabel("false-positive rate")
     right.set_title("Labels swapped at random (null); bars span the six pairs", fontsize=10)
     fig.tight_layout()
     fig.savefig(path)
     plt.close(fig)
+    return fig
 
 
 def main(argv: list[str] | None = None) -> int:
