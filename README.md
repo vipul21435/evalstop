@@ -391,7 +391,7 @@ Reading the tables:
   discordant-pair test (0.021 to 0.033) and Wald's test (0.024 to 0.050) stay at or below 0.05. The
   group-sequential rules range from 0.038 to 0.059 and the single test on all 500 from 0.024 to 0.051; with 2000
   orders the standard error of each entry is about 0.005, and the group-sequential boundaries rest on a normal
-  approximation, so they are not guaranteed to stay below alpha.
+  approximation, so they are not guaranteed to stay below alpha ([Limitations](#limitations) has a larger run).
 
 One pair on its own, with the same numbers as its row above:
 
@@ -478,7 +478,12 @@ designs give up little power (0.53 and 0.45) because they look only five times. 
 - The discordant-pair test, Wald's test, the group-sequential rules and the McNemar baselines need pass/fail
   scores. For graded scores `compare` and `replay` run only the sequences on the difference. `simulate` draws
   pass/fail results only, and `replay` needs scores in [0, 1].
-- The group-sequential boundaries rely on a normal approximation and on looking only at the planned looks. The
+- The group-sequential boundaries rely on a normal approximation and on looking only at the planned looks. With
+  few discordant items the approximation lets the false-positive rate of `obf` drift slightly above alpha: with
+  500 items of which 5 percent are discordant,
+  `evalstop simulate --effects 0 --items 500 --runs 40000 --discordance 0.05 --rules obf pocock fixed --seed 0 --format json`
+  gives 0.0515 for `obf` (standard error 0.0011), 0.0424 for `pocock` and 0.0306 for the exact single test, and
+  single pairs in the study above reached 0.059. Exact binomial boundaries at the looks are not implemented. The
   rules use equally spaced looks. `design` prints boundaries but does not compute power or a sample size.
 - Wald's thresholds bound the false-positive rate by `alpha / (1 - beta)`, not `alpha`.
 - Scores must be bounded with known bounds. Betting limits are multiples of the range divided by `--grid`, and
