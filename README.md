@@ -523,6 +523,9 @@ Wald's bound `alpha / (1 - beta)` for his test).
   evaluation needs.
 - [gsDesign](https://github.com/keaven/gsDesign): group-sequential design for clinical trials in R, including
   power and sample size, which `evalstop design` does not compute.
+- [evaltable](https://github.com/vipul21435/evaltable): one per-item results table from many evaluation harness formats.
+- [irtbench](https://github.com/vipul21435/irtbench): item response theory for benchmark results: which items separate models, and how small a subset of items predicts the full score.
+- [ppieval](https://github.com/vipul21435/ppieval): combines a few human labels with many automatic judgments and keeps the interval valid.
 
 ## Licence
 
