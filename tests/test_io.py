@@ -133,6 +133,7 @@ def test_records_are_parsed_lazily():
         (['{"score": [1]}'], r"line 1: score \[1\] is not a number"),
         (['{"score": NaN}'], "line 1: score nan is not finite"),
         (['{"score": 1e999}'], "line 1: score inf is not finite"),
+        (['{"score": ' + "9" * 400 + "}"], "line 1: score is too large"),
         (["", '{"score": 1}', '{"score": "x"}'], "line 3: score 'x'"),
         (["item,model", "q1,m"], "line 1: the CSV header has no score column"),
         (["item,score", "q1,1", "q2,1,extra"], "line 3: expected 2 columns, found 3"),
