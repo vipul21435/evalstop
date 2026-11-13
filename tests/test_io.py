@@ -165,6 +165,17 @@ def test_scores_for_a_single_or_a_chosen_model():
     assert scores_for([]) == ("", [])
 
 
+def test_scores_for_rejects_a_repeated_item():
+    records = [Record("q1", "a", 1.0), Record("q1", "b", 0.0), Record("q2", "a", 0.0)]
+    assert scores_for(records, "a") == ("a", [1.0, 0.0])
+    repeated = [*records, Record("q1", "a", 0.0)]
+    with pytest.raises(InputError, match="model 'a' has two scores for item 'q1'"):
+        scores_for(repeated, "a")
+    assert scores_for(repeated, "b") == ("b", [0.0])
+    with pytest.raises(InputError, match="model '' has two scores for item 'x'"):
+        scores_for([Record("x", "", 1.0), Record("x", "", 1.0)])
+
+
 def test_scores_for_needs_a_choice_between_several_models():
     records = [Record("1", "b", 1.0), Record("1", "a", 0.0)]
     with pytest.raises(InputError, match=r"several models \('b', 'a'\)"):

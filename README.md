@@ -153,7 +153,8 @@ mean difference so far +0.129, interval [+0.002, +0.282]
 Every command prints Markdown, or JSON with `--format json`. `monitor` and `compare` save a chart with
 `--chart FILE`. Input is JSON Lines or CSV with the fields `item`, `model` and `score` (only `score` is required);
 `-` reads standard input until it ends. A score is a number between `--lo` and `--hi` (default 0 and 1), a JSON
-boolean, or one of the words `true`, `false`, `pass`, `fail`. `evalstop COMMAND --help` lists every option.
+boolean, or one of the words `true`, `false`, `pass`, `fail`. An item may appear once per model; a second score
+for the same item and model is an error, because repeats are not independent results. `evalstop COMMAND --help` lists every option.
 
 ## How it works
 

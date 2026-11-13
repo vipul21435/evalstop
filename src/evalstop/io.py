@@ -169,7 +169,9 @@ def model_names(records: Iterable[Record]) -> list[str]:
 def scores_for(records: Iterable[Record], model: str | None = None) -> tuple[str, list[float]]:
     """Return the chosen model's name and its scores in file order.
 
-    With ``model=None`` the records must all belong to one model.
+    With ``model=None`` the records must all belong to one model. An item may
+    appear only once for the model: repeated scores of one item are not
+    independent results, so a repeat is an error rather than extra data.
     """
     records = list(records)
     names = model_names(records)
@@ -181,4 +183,13 @@ def scores_for(records: Iterable[Record], model: str | None = None) -> tuple[str
     elif model not in names:
         listed = ", ".join(repr(name) for name in names) or "none"
         raise InputError(f"no results for model {model!r}; found {listed}")
-    return model, [record.score for record in records if record.model == model]
+    scores: list[float] = []
+    seen: set[str] = set()
+    for record in records:
+        if record.model != model:
+            continue
+        if record.item in seen:
+            raise InputError(f"model {model!r} has two scores for item {record.item!r}")
+        seen.add(record.item)
+        scores.append(record.score)
+    return model, scores

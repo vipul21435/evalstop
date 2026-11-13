@@ -201,6 +201,24 @@ def test_missing_and_empty_files_exit_with_status_2(tmp_path, capsys):
     assert status == 2 and "line 2: not valid JSON" in err
 
 
+def test_monitor_rejects_a_repeated_item_like_compare_does(tmp_path, capsys):
+    rows = [
+        {"item": "q1", "model": "a", "score": 1},
+        {"item": "q1", "model": "b", "score": 0},
+        {"item": "q1", "model": "a", "score": 0},
+    ]
+    path = tmp_path / "repeat.jsonl"
+    path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+    for argv in (["monitor", str(path), "--model", "a"], ["compare", str(path)]):
+        status, out, err = run(capsys, *argv)
+        assert status == 2 and out == ""
+        assert "model 'a' has two scores for item 'q1'" in err
+    # Rows without an item field are numbered, so they never collide.
+    plain = tmp_path / "plain.csv"
+    plain.write_text("score\n1\n1\n0\n", encoding="utf-8")
+    assert run(capsys, "monitor", str(plain))[0] == 0
+
+
 def test_unknown_method_is_rejected_by_the_library():
     with pytest.raises(ValueError, match="unknown method"):
         monitor_scores([0, 1], method="exact")
