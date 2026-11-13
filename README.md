@@ -381,10 +381,11 @@ Reading the tables:
 - For the two pairs 5.8 and 5.0 points apart, the discordant-pair test decides in every order after 55 and 63
   percent of the items on average. The betting sequence decides in 91 and 78 percent of the orders. The mixture
   sequence never decides: its worst-case variance is far too large for these differences.
-- For the pair 2.8 points apart, the test on all 500 items is not significant (p = 0.092). The always-valid rules
-  pick a winner in 5 to 7 percent of orders and the group-sequential rules in 8 and 11 percent. Peeking with
-  McNemar after every item picks one in 55 percent. These are shuffles of one fixed set of results in which the
-  two submissions do differ (37 against 23 discordant items), so they are not error rates.
+- For the pair 2.8 points apart, the test on all 500 items is not significant (p = 0.092). The betting sequence,
+  the discordant-pair test and Wald's test pick a winner in 5 to 7 percent of orders, the mixture sequence never,
+  and the group-sequential rules in 8 and 11 percent. Peeking with McNemar after every item picks one in 55
+  percent. These are shuffles of one fixed set of results in which the two submissions do differ (37 against 23
+  discordant items), so they are not error rates.
 - For the tied pair, peeking declares a winner in 7 percent of orders and every other rule in at most 1 percent.
   Wald's test uses 64 percent of the items there on average, because it stops for futility.
 - With labels swapped, peeking is wrong in 18 to 25 percent of orders. The betting sequence (0.019 to 0.029), the
