@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from evalstop.betting import betting_cs
 from evalstop.mixture import mixture_cs
 from evalstop.sequence import ConfidenceSequence, Stop
+from evalstop.text import count
 
 METHODS = ("betting", "mixture")
 _LABELS = {"betting": "betting (hedged capital)", "mixture": "normal mixture"}
@@ -102,7 +103,7 @@ class MonitorReport:
             f"- input: `{self.source}`{model}",
             f"- scores: {n} in [{lo:g}, {hi:g}], mean {seq.mean[-1]:.4f}",
             f"- method: {_LABELS[seq.method]}, alpha {seq.alpha:g}{settings}",
-            f"- {level} confidence sequence after {n} scores: "
+            f"- {level} confidence sequence after {count(n, 'score')}: "
             f"[{seq.lower[-1]:.4f}, {seq.upper[-1]:.4f}]",
         ]
         if self.rules:
@@ -136,7 +137,8 @@ class MonitorReport:
         if seq.first_empty is not None:
             lines += [
                 "",
-                f"Warning: after {seq.first_empty} scores the running intersection became empty. "
+                f"Warning: after {count(seq.first_empty, 'score')} the running intersection "
+                "became empty. "
                 "The scores do not look like draws with one fixed mean (for example the order "
                 "is sorted by difficulty), so the limits from that point on are not meaningful.",
             ]
@@ -152,9 +154,9 @@ def _rule_row(result: RuleResult, n: int) -> str:
         name = f"width <= {result.value:g}"
         decision = "not reached" if stop is None else "narrow enough"
     if stop is None:
-        return f"| {name} | not within {n} scores | {decision} | |"
+        return f"| {name} | not within {count(n, 'score')} | {decision} | |"
     interval = f"[{stop.lower:.4f}, {stop.upper:.4f}]"
-    return f"| {name} | {stop.n} of {n} scores | {decision} | {interval} |"
+    return f"| {name} | {stop.n} of {count(n, 'score')} | {decision} | {interval} |"
 
 
 def monitor_scores(

@@ -23,6 +23,7 @@ from evalstop import rules
 from evalstop.paired import Pairs
 from evalstop.sequence import check_alpha
 from evalstop.stats import mcnemar_exact_p
+from evalstop.text import count
 
 _VALID = {
     "betting": "yes",
@@ -144,8 +145,8 @@ class SimulationReport:
         lines = [
             "# evalstop simulate",
             "",
-            f"- {self.runs} runs of {self.items} paired pass/fail items per effect, "
-            f"seed {self.seed}",
+            f"- {count(self.runs, 'run')} of {count(self.items, 'paired pass/fail item')} "
+            f"per effect, seed {self.seed}",
             f"- the two models disagree on a share {self.discordance:g} of the items; "
             "the effect is the difference between their pass rates",
             f"- alpha {self.alpha:g}{futility}{looks}",
@@ -320,7 +321,7 @@ class ReplayReport:
             f"- pairs: {self.pairs}, only A passes {self.wins}, only B passes {self.losses}",
             f"- exact McNemar test on all pairs: p = {self.full_p:.3g} ({verdict} at alpha "
             f"{self.alpha:g})",
-            f"- {self.orders} random orders, seed {self.seed}"
+            f"- {count(self.orders, 'random order')}, seed {self.seed}"
             + (", labels swapped at random within each pair (null)" if self.null else ""),
         ]
         if self.min_effect is not None:

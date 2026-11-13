@@ -174,7 +174,7 @@ def test_compare_command(tmp_path, capsys):
     assert main(["compare", str(path), "--min-effect", "0.05"]) == 0
     out = capsys.readouterr().out
     assert "- A: `strong`, mean " in out and "B: `weak`, mean " in out
-    assert "- left out: 1 scores for items only one model was run on" in out
+    assert "- left out: 1 score for items only one model was run on" in out
     assert main(["compare", str(path), "--model-a", "weak", "--model-b", "strong",
                  "--method", "mixture", "--format", "json"]) == 0  # fmt: skip
     data = json.loads(capsys.readouterr().out)

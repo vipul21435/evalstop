@@ -26,6 +26,7 @@ from evalstop.io import InputError, Record, model_names
 from evalstop.mixture import mixture_cs
 from evalstop.sequence import ConfidenceSequence, check_bounds
 from evalstop.stats import discordant_log_evalue, mcnemar_exact_p
+from evalstop.text import count
 
 METHODS = ("betting", "mixture")
 _DECISIONS = {
@@ -229,7 +230,8 @@ class CompareReport:
             f"- pairs: {n}, mean difference A - B: {seq.mean[-1]:+.4f}",
         ]
         if pairs.unpaired:
-            lines.append(f"- left out: {pairs.unpaired} scores for items only one model was run on")
+            left_out = count(pairs.unpaired, "score")
+            lines.append(f"- left out: {left_out} for items only one model was run on")
         counts = self._counts()
         if counts is not None:
             lines.append(
@@ -238,7 +240,7 @@ class CompareReport:
             )
         lines += [
             f"- method: {label}, alpha {seq.alpha:g}{settings}",
-            f"- {level} confidence sequence for the difference after {n} pairs: "
+            f"- {level} confidence sequence for the difference after {count(n, 'pair')}: "
             f"[{seq.lower[-1]:+.4f}, {seq.upper[-1]:+.4f}]",
             "",
             "## Rules",
@@ -249,7 +251,7 @@ class CompareReport:
         for line in self.lines:
             when = f"{line.stopped_at} of {n}"
             if line.stopped_at is None:
-                when = f"not within {n} pairs"
+                when = f"not within {count(n, 'pair')}"
             note = f" ({line.note})" if line.note else ""
             lines.append(
                 f"| {line.label} | {'yes' if line.valid else 'no'} | {when} "
@@ -270,7 +272,8 @@ class CompareReport:
         if seq.first_empty is not None:
             lines += [
                 "",
-                f"Warning: after {seq.first_empty} pairs the running intersection became empty. "
+                f"Warning: after {count(seq.first_empty, 'pair')} the running intersection "
+                "became empty. "
                 "The differences do not look like draws with one fixed mean, so the limits from "
                 "that point on are not meaningful.",
             ]
