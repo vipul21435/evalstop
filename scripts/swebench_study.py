@@ -39,6 +39,52 @@ def table(header: list[str], rows: list[list[str]]) -> str:
     return "\n".join(lines)
 
 
+SHOWN = ("betting", "discordant", "sprt", "obf", "pocock", "naive")
+
+
+def draw(dump: list[dict], gaps: list[str], alpha: float, path: Path) -> None:
+    """Items used by each rule per pair, and false-positive rates under the null."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, (left, right) = plt.subplots(1, 2, figsize=(10.0, 4.0), dpi=120)
+    x = range(len(dump))
+    for name in SHOWN:
+        share = [
+            next(r["mean_share_of_items"] for r in entry["real"]["rows"] if r["rule"] == name)
+            for entry in dump
+        ]
+        style = "--" if name == "naive" else "-"
+        left.plot(x, share, marker="o", linestyle=style, linewidth=1.2, label=name)
+    left.set_xticks(list(x), gaps)
+    left.set_xlabel("gap between the two submissions (points)")
+    left.set_ylabel("mean share of the 500 items used")
+    left.set_ylim(0, 1.05)
+    left.legend(fontsize=8)
+    left.set_title("Real results in random orders", fontsize=10)
+
+    rates = {
+        name: [
+            next(r["decided"] for r in entry["null"]["rows"] if r["rule"] == name)
+            for entry in dump
+        ]
+        for name in SHOWN
+    }
+    means = [sum(rates[name]) / len(dump) for name in SHOWN]
+    low = [m - min(rates[name]) for m, name in zip(means, SHOWN, strict=True)]
+    high = [max(rates[name]) - m for m, name in zip(means, SHOWN, strict=True)]
+    colors = ["#d94801" if name == "naive" else "#4292c6" for name in SHOWN]
+    right.bar(list(SHOWN), means, yerr=[low, high], color=colors, capsize=3)
+    right.axhline(alpha, color="#444444", linewidth=0.8, linestyle="--")
+    right.set_ylabel("false-positive rate")
+    right.set_title("Labels swapped at random (null); bars span the six pairs", fontsize=10)
+    fig.tight_layout()
+    fig.savefig(path)
+    plt.close(fig)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("results", help="file written by fetch_swebench_verified.py")
@@ -46,6 +92,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--alpha", type=float, default=0.05)
     parser.add_argument("--json", type=Path, help="also write every number to this JSON file")
+    parser.add_argument("--chart", type=Path, help="also save a chart of the results (PNG)")
     args = parser.parse_args(argv)
 
     records = read_records(args.results)
@@ -94,6 +141,8 @@ def main(argv: list[str] | None = None) -> int:
     print(table(["pair", *names], false_positives))
     if args.json is not None:
         args.json.write_text(json.dumps(dump, indent=2) + "\n", encoding="utf-8")
+    if args.chart is not None:
+        draw(dump, [row[3] for row in summary], args.alpha, args.chart)
     return 0
 
 

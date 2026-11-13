@@ -11,6 +11,7 @@ from evalstop import __version__, gsd, rules
 from evalstop.io import FORMATS, read_records, scores_for
 from evalstop.monitor import METHODS, monitor_scores
 from evalstop.paired import compare_pairs, pair_records
+from evalstop.plot import plot_sequence
 from evalstop.simulate import replay, simulate
 
 
@@ -70,6 +71,10 @@ def _add_sequence(parser: argparse.ArgumentParser) -> None:
         "--every",
         type=int,
         help="print a trace row every this many scores (default: about ten rows)",
+    )
+    parser.add_argument(
+        "--chart",
+        help="also save a chart of the sequence to this file (needs matplotlib)",
     )
 
 
@@ -260,7 +265,7 @@ def _source(args: argparse.Namespace) -> str:
 def _monitor(args: argparse.Namespace):
     records = read_records(args.results, args.input_format)
     model, scores = scores_for(records, args.model)
-    return monitor_scores(
+    report = monitor_scores(
         scores,
         alpha=args.alpha,
         method=args.method,
@@ -275,12 +280,26 @@ def _monitor(args: argparse.Namespace):
         source=_source(args),
         model=model,
     )
+    if args.chart:
+        stops = [
+            (rule.stop.n, f"{rule.rule} {rule.value:g}: {rule.stop.n} items")
+            for rule in report.rules
+            if rule.stop is not None
+        ]
+        plot_sequence(
+            report.sequence,
+            args.chart,
+            title=f"{model or 'scores'}: {report.sequence.method} confidence sequence",
+            reference=args.threshold,
+            stops=stops,
+        )
+    return report
 
 
 def _compare(args: argparse.Namespace):
     records = read_records(args.results, args.input_format)
     pairs = pair_records(records, args.model_a, args.model_b)
-    return compare_pairs(
+    report = compare_pairs(
         pairs,
         alpha=args.alpha,
         method=args.method,
@@ -293,6 +312,21 @@ def _compare(args: argparse.Namespace):
         population=args.population,
         source=_source(args),
     )
+    if args.chart:
+        stops = [
+            (line.stopped_at, f"{line.name}: {line.stopped_at} pairs")
+            for line in report.lines
+            if line.stopped_at is not None and line.name != "fixed"
+        ]
+        plot_sequence(
+            report.sequence,
+            args.chart,
+            title=f"{pairs.model_a} minus {pairs.model_b}",
+            ylabel="mean difference",
+            reference=0.0,
+            stops=stops,
+        )
+    return report
 
 
 def _design(args: argparse.Namespace):
