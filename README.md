@@ -492,7 +492,8 @@ uv run ruff check
 uv run pytest -q --cov=evalstop
 ```
 
-257 tests, 99 % line and branch coverage of `src/evalstop` on Python 3.12. The tests check the mixture boundary against its closed form, numerical integration and scipy's Lambert
+259 tests, 99 % line and branch coverage of `src/evalstop` on Python 3.12; the suite also passes on Python 3.10
+and 3.13. The tests check the mixture boundary against its closed form, numerical integration and scipy's Lambert
 W; the betting interval, with and without replacement, against a direct recomputation of the capital; the
 vectorised rules against the sequences item by item; Wald's test against his closed-form boundaries, error bounds
 and sample-size approximation; the alpha-spending boundaries against scipy's multivariate normal integral and
